@@ -3,13 +3,19 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import Card from '@/components/ui/Card'
 import api from '@/lib/axios'
+import {
+  adminSelectClass,
+  adminStatusStyles,
+  adminTableHeadClass,
+  adminTableRowClass
+} from '@/lib/admin'
 import { getApiErrorMessage } from '@/lib/errors'
 import {
   formatOrderDate,
   ORDER_STATUS_OPTIONS,
-  statusStyles,
   type OrderStatus
 } from '@/lib/orders'
 import { formatPrice } from '@/lib/products'
@@ -70,41 +76,40 @@ export default function AdminPedidosPage() {
 
   return (
     <div>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Pedidos</h1>
-          <p className="mt-2 text-slate-600">Histórico completo de órdenes</p>
-        </div>
-
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-        >
-          <option value="">Todos los estados</option>
-          {ORDER_STATUS_OPTIONS.map((status) => (
-            <option key={status} value={status}>
-              {statusStyles[status].label}
-            </option>
-          ))}
-        </select>
-      </div>
+      <AdminPageHeader
+        title="Pedidos"
+        subtitle="Histórico completo de órdenes"
+        actions={
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className={adminSelectClass}
+          >
+            <option value="">Todos los estados</option>
+            {ORDER_STATUS_OPTIONS.map((status) => (
+              <option key={status} value={status}>
+                {adminStatusStyles[status].label}
+              </option>
+            ))}
+          </select>
+        }
+      />
 
       <Card className="mt-8 overflow-hidden" padding="sm">
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+            <Loader2 className="h-8 w-8 animate-spin text-neon-red" />
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[800px] text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-4 py-3 font-medium">ID Orden</th>
-                  <th className="px-4 py-3 font-medium">Cliente</th>
-                  <th className="px-4 py-3 font-medium">Total</th>
-                  <th className="px-4 py-3 font-medium">Estado</th>
-                  <th className="px-4 py-3 font-medium">Fecha</th>
+              <thead>
+                <tr className={adminTableHeadClass}>
+                  <th className="px-4 py-3">ID Orden</th>
+                  <th className="px-4 py-3">Cliente</th>
+                  <th className="px-4 py-3">Total</th>
+                  <th className="px-4 py-3">Estado</th>
+                  <th className="px-4 py-3">Fecha</th>
                 </tr>
               </thead>
               <tbody>
@@ -115,44 +120,46 @@ export default function AdminPedidosPage() {
                     </td>
                   </tr>
                 ) : (
-                  orders.map((order) => (
-                    <tr key={order.id} className="border-t border-slate-100">
-                      <td className="px-4 py-3 font-mono text-xs">
-                        #{order.id.slice(0, 8).toUpperCase()}
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-slate-900">
-                          {order.customer?.full_name || '—'}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {order.customer?.email}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3 font-medium">
-                        {formatPrice(order.total)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <select
-                          value={order.status}
-                          onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                          disabled={updatingId === order.id}
-                          className={`rounded-lg border px-3 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 ${
-                            statusStyles[order.status as OrderStatus]?.className ||
-                            'border-slate-200'
-                          }`}
-                        >
-                          {ORDER_STATUS_OPTIONS.map((status) => (
-                            <option key={status} value={status}>
-                              {statusStyles[status].label}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-4 py-3 text-slate-500">
-                        {formatOrderDate(order.created_at)}
-                      </td>
-                    </tr>
-                  ))
+                  orders.map((order) => {
+                    const statusKey = order.status as OrderStatus
+                    const statusStyle = adminStatusStyles[statusKey]
+
+                    return (
+                      <tr key={order.id} className={adminTableRowClass}>
+                        <td className="px-4 py-3 font-mono text-xs text-neon-cyan">
+                          #{order.id.slice(0, 8).toUpperCase()}
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-white">
+                            {order.customer?.full_name || '—'}
+                          </p>
+                          <p className="text-xs text-slate-500">{order.customer?.email}</p>
+                        </td>
+                        <td className="px-4 py-3 font-medium text-white">
+                          {formatPrice(order.total)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <select
+                            value={order.status}
+                            onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                            disabled={updatingId === order.id}
+                            className={`rounded-lg border bg-surface px-3 py-1.5 text-xs font-semibold text-white focus:border-neon-red/50 focus:outline-none focus:ring-2 focus:ring-neon-red/20 disabled:opacity-50 ${
+                              statusStyle?.className || 'border-[var(--border)]'
+                            }`}
+                          >
+                            {ORDER_STATUS_OPTIONS.map((status) => (
+                              <option key={status} value={status}>
+                                {adminStatusStyles[status].label}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-4 py-3 text-slate-400">
+                          {formatOrderDate(order.created_at)}
+                        </td>
+                      </tr>
+                    )
+                  })
                 )}
               </tbody>
             </table>

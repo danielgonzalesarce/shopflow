@@ -5,9 +5,11 @@ import Image from 'next/image'
 import { ImageOff, Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import ProductModal from './ProductModal'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 import api from '@/lib/axios'
+import { adminTableHeadClass, adminTableRowClass } from '@/lib/admin'
 import { getApiErrorMessage } from '@/lib/errors'
 import { formatPrice } from '@/lib/products'
 import { useAuthStore } from '@/store/auth.store'
@@ -101,40 +103,41 @@ export default function AdminProductosPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Productos</h1>
-          <p className="mt-2 text-slate-600">Gestión del catálogo completo</p>
-        </div>
-        <Button onClick={handleAdd} disabled={categories.length === 0}>
-          <Plus className="mr-2 h-4 w-4" />
-          Crear producto
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Productos"
+        subtitle="Gestión del catálogo completo"
+        actions={
+          <Button onClick={handleAdd} disabled={categories.length === 0}>
+            <Plus className="mr-2 h-4 w-4" />
+            Crear producto
+          </Button>
+        }
+      />
 
       {categories.length === 0 && (
-        <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          No hay categorías disponibles. Ejecuta el schema de la base de datos antes de crear productos.
+        <p className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+          No hay categorías disponibles. Ejecuta el schema de la base de datos antes de crear
+          productos.
         </p>
       )}
 
       <Card className="mt-8 overflow-hidden" padding="sm">
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+            <Loader2 className="h-8 w-8 animate-spin text-neon-red" />
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Imagen</th>
-                  <th className="px-4 py-3 font-medium">Nombre</th>
-                  <th className="px-4 py-3 font-medium">Categoría</th>
-                  <th className="px-4 py-3 font-medium">Precio</th>
-                  <th className="px-4 py-3 font-medium">Stock</th>
-                  <th className="px-4 py-3 font-medium">Estado</th>
-                  <th className="px-4 py-3 font-medium">Acciones</th>
+              <thead>
+                <tr className={adminTableHeadClass}>
+                  <th className="px-4 py-3">Imagen</th>
+                  <th className="px-4 py-3">Nombre</th>
+                  <th className="px-4 py-3">Categoría</th>
+                  <th className="px-4 py-3">Precio</th>
+                  <th className="px-4 py-3">Stock</th>
+                  <th className="px-4 py-3">Estado</th>
+                  <th className="px-4 py-3">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -146,9 +149,9 @@ export default function AdminProductosPage() {
                   </tr>
                 ) : (
                   products.map((product) => (
-                    <tr key={product.id} className="border-t border-slate-100">
+                    <tr key={product.id} className={adminTableRowClass}>
                       <td className="px-4 py-3">
-                        <div className="relative h-12 w-12 overflow-hidden rounded-lg bg-slate-100">
+                        <div className="relative h-12 w-12 overflow-hidden rounded-lg border border-[var(--border)] bg-surface">
                           {product.image_url ? (
                             <Image
                               src={product.image_url}
@@ -159,25 +162,34 @@ export default function AdminProductosPage() {
                             />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center">
-                              <ImageOff className="h-5 w-5 text-slate-400" />
+                              <ImageOff className="h-5 w-5 text-slate-500" />
                             </div>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-medium text-slate-900">
-                        {product.name}
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-white">{product.name}</p>
+                        {product.description && (
+                          <p className="mt-0.5 line-clamp-1 max-w-xs text-xs text-slate-500">
+                            {product.description}
+                          </p>
+                        )}
                       </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {product.category?.name || '—'}
+                      <td className="px-4 py-3">
+                        <span className="rounded-lg border border-neon-cyan/20 bg-neon-cyan/5 px-2 py-0.5 text-xs text-neon-cyan">
+                          {product.category?.name || '—'}
+                        </span>
                       </td>
-                      <td className="px-4 py-3">{formatPrice(product.price)}</td>
-                      <td className="px-4 py-3">{product.stock}</td>
+                      <td className="px-4 py-3 font-medium text-white">
+                        {formatPrice(product.price)}
+                      </td>
+                      <td className="px-4 py-3 text-slate-300">{product.stock}</td>
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                             product.is_active
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
+                              ? 'border border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
+                              : 'border border-red-500/40 bg-red-500/15 text-red-300'
                           }`}
                         >
                           {product.is_active ? 'Activo' : 'Inactivo'}
@@ -185,11 +197,7 @@ export default function AdminProductosPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(product)}
-                          >
+                          <Button size="sm" variant="outline" onClick={() => handleEdit(product)}>
                             <Pencil className="mr-1.5 h-3.5 w-3.5" />
                             Editar
                           </Button>
@@ -200,7 +208,7 @@ export default function AdminProductosPage() {
                               onClick={() => handleDelete(product)}
                               disabled={deletingId === product.id}
                               isLoading={deletingId === product.id}
-                              className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                              className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
                             >
                               <Trash2 className="mr-1.5 h-3.5 w-3.5" />
                               Eliminar

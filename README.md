@@ -275,44 +275,91 @@ Repositorio: [github.com/danielgonzalesarce/shopflow](https://github.com/danielg
 | Backend | [Render](https://render.com) | `https://shopflow-api.onrender.com` |
 | BD + Storage | [Supabase](https://supabase.com) | Proyecto existente |
 
-### Backend (Render)
+> **Importante:** Vercel solo aloja el frontend (Next.js). El backend Express va en **Render** (plan free). Sin el backend en Render, la tienda en Vercel no puede cargar productos ni autenticar usuarios.
 
-| Variable | Valor producción |
-|----------|------------------|
-| `NODE_ENV` | `production` |
-| `SUPABASE_URL` | URL Supabase |
-| `SUPABASE_SERVICE_KEY` | Secret key |
-| `JWT_SECRET` | Secreto seguro |
-| `FRONTEND_URL` | URL Vercel |
-| `BACKEND_URL` | URL Render (`https://shopflow-api.onrender.com`) |
-| `GOOGLE_*` / `GITHUB_*` | Credenciales OAuth con callbacks de producción |
+### Paso 1 — Backend en Render
 
-**Callbacks producción:**
-
-- Google: `https://shopflow-api.onrender.com/api/auth/google/callback`
-- GitHub: `https://shopflow-api.onrender.com/api/auth/github/callback`
-
-### Frontend (Vercel)
+1. Entra a [render.com](https://render.com) → **New** → **Blueprint**.
+2. Conecta el repo `danielgonzalesarce/shopflow` (usa el `render.yaml` del proyecto).
+3. En **Environment**, completa las variables (plantilla: `backend/.env.production.example`):
 
 | Variable | Valor |
 |----------|-------|
-| `NEXT_PUBLIC_API_URL` | `https://shopflow-api.onrender.com/api` |
+| `NODE_ENV` | `production` |
+| `PORT` | `10000` |
+| `SUPABASE_URL` | Tu URL de Supabase |
+| `SUPABASE_SERVICE_KEY` | Secret key de Supabase |
+| `JWT_SECRET` | Secreto largo y aleatorio |
+| `FRONTEND_URL` | URL de Vercel (la obtienes en el paso 2) |
+| `BACKEND_URL` | `https://shopflow-api.onrender.com` (tu URL de Render) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth Google |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | OAuth GitHub |
 
-### Verificación
+4. Espera el deploy y verifica: `https://TU-API.onrender.com/api/health` → `{ "status": "ok" }`.
 
-| Prueba | Acción |
-|--------|--------|
-| Health | `GET …/api/health` |
-| OAuth | `GET …/api/auth/oauth/status` |
-| Tienda | Abrir URL Vercel |
-| Admin | Login `superadmin@shopflow.com` → `/admin` |
+**Alternativa manual:** New → Web Service → Root Directory `backend` → Build `npm install` → Start `npm start`.
+
+### Paso 2 — Frontend en Vercel
+
+1. Entra a [vercel.com/new](https://vercel.com/new) → Importa el repo de GitHub.
+2. Configura el proyecto:
+
+| Campo | Valor |
+|-------|-------|
+| **Root Directory** | `frontend` |
+| **Framework Preset** | Next.js |
+| **Build Command** | `npm run build` |
+| **Output Directory** | `.next` (default) |
+
+3. En **Environment Variables**, agrega:
+
+| Variable | Valor |
+|----------|-------|
+| `NEXT_PUBLIC_API_URL` | `https://TU-API.onrender.com/api` |
+
+4. Deploy. Copia la URL que te da Vercel (ej. `https://shopflow.vercel.app`).
+
+5. Vuelve a **Render** y actualiza `FRONTEND_URL` con la URL exacta de Vercel (sin `/` al final). Redeploy el backend.
+
+### Paso 3 — OAuth en producción
+
+Agrega estos callbacks **además** de los de localhost:
+
+| Proveedor | Redirect URI producción |
+|-----------|-------------------------|
+| Google | `https://TU-API.onrender.com/api/auth/google/callback` |
+| GitHub | `https://TU-API.onrender.com/api/auth/github/callback` |
+
+En GitHub OAuth App, actualiza también **Homepage URL** a tu URL de Vercel.
+
+### Paso 4 — Supabase
+
+Ejecuta en SQL Editor (si no lo hiciste antes):
+
+- `backend/src/config/schema.sql`
+- `backend/src/config/wishlist.sql`
+- `backend/src/config/product-images.sql`
+- `backend/src/config/oauth-migration.sql`
+
+Bucket **`product-images`** público en Storage.
+
+### Verificación final
+
+| Prueba | URL / acción |
+|--------|----------------|
+| Health API | `GET https://TU-API.onrender.com/api/health` |
+| OAuth | `GET https://TU-API.onrender.com/api/auth/oauth/status` → `dbReady: true` |
+| Tienda | Abrir URL Vercel → catálogo carga |
+| Login | Google, GitHub o email |
+| Admin | `superadmin@shopflow.com` → `/admin` |
 
 ### Notas
 
 - **No subas** `.env` con secretos a GitHub.
-- Render Free tiene **cold start** (~30–60 s).
-- CORS acepta solo el origen en `FRONTEND_URL`.
-- Imágenes: Supabase y `picsum.photos` configurados en `next.config.ts`.
+- Render Free tiene **cold start** (~30–60 s la primera petición).
+- `FRONTEND_URL` en Render debe coincidir **exactamente** con la URL de Vercel (https, sin barra final).
+- Desarrollo local sigue igual: `localhost:3000` + `localhost:4000` (CORS permite localhost en dev).
+- Imágenes: Supabase y `picsum.photos` en `frontend/next.config.ts`.
 
 ---
 

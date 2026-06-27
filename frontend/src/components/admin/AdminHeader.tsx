@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { LogOut } from 'lucide-react'
+import { LogOut, Shield } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
 import Button from '@/components/ui/Button'
 
@@ -16,14 +16,19 @@ export default function AdminHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-8">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
-          Administración
-        </p>
-        <h1 className="text-sm font-medium text-slate-600">
-          Hola, {user?.full_name || 'Administrador'}
-        </h1>
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[var(--border)] bg-surface/90 px-6 backdrop-blur-md lg:px-8">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-neon-red/30 bg-neon-red/10">
+          <Shield className="h-4 w-4 text-neon-red" />
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neon-cyan">
+            Administración
+          </p>
+          <p className="text-sm font-medium text-white">
+            Hola, {user?.full_name || 'Administrador'}
+          </p>
+        </div>
       </div>
 
       <Button variant="ghost" size="sm" onClick={handleLogout}>

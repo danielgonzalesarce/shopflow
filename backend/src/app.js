@@ -3,6 +3,7 @@ const cors = require('cors')
 const helmet = require('helmet')
 const rateLimit = require('express-rate-limit')
 const supabase = require('./config/database')
+const { createCorsOptions } = require('./config/cors')
 const errorHandler = require('./middlewares/errorHandler')
 
 const authRoutes = require('./routes/auth.routes')
@@ -16,10 +17,7 @@ const app = express()
 app.set('trust proxy', 1)
 
 app.use(helmet())
-app.use(cors({
-  origin: process.env.FRONTEND_URL,
-  credentials: true
-}))
+app.use(cors(createCorsOptions()))
 app.use(express.json())
 
 const authLimiter = rateLimit({

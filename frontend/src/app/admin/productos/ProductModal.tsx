@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import api from '@/lib/axios'
+import { adminSelectClass } from '@/lib/admin'
 import { getApiErrorMessage } from '@/lib/errors'
 import { getProductImages } from '@/lib/products'
 import type { ApiResponse, Category, Product } from '@/types'
@@ -20,6 +21,9 @@ interface ProductModalProps {
 }
 
 const emptyImageUrls = () => ['', '', '']
+
+const textareaClass =
+  'w-full rounded-xl border border-[var(--border)] bg-surface px-4 py-3 text-white placeholder:text-slate-500 focus:border-neon-red focus:outline-none focus:ring-4 focus:ring-neon-red/15 disabled:opacity-60'
 
 export default function ProductModal({
   open,
@@ -50,11 +54,7 @@ export default function ProductModal({
       setPrice(String(product.price))
       setStock(String(product.stock))
       setCategoryId(product.category_id || '')
-      setImageUrls([
-        images[0] || '',
-        images[1] || '',
-        images[2] || ''
-      ])
+      setImageUrls([images[0] || '', images[1] || '', images[2] || ''])
     } else {
       setName('')
       setDescription('')
@@ -146,32 +146,30 @@ export default function ProductModal({
 
   if (!open) return null
 
-  const previewImages = [
-    filePreviewUrl || imageUrls[0],
-    imageUrls[1],
-    imageUrls[2]
-  ].filter(Boolean)
+  const previewImages = [filePreviewUrl || imageUrls[0], imageUrls[1], imageUrls[2]].filter(
+    Boolean
+  )
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={handleClose}
       />
-      <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+      <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[var(--border)] bg-surface-elevated shadow-2xl shadow-black/50">
+        <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">
+            <h2 className="text-lg font-semibold text-white">
               {isEditing ? 'Editar producto' : 'Crear producto'}
             </h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-slate-400">
               Completa los datos. Si no subes imágenes, se generarán automáticamente.
             </p>
           </div>
           <button
             type="button"
             onClick={handleClose}
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
             aria-label="Cerrar"
           >
             <X className="h-5 w-5" />
@@ -188,7 +186,7 @@ export default function ProductModal({
           />
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label className="mb-1.5 block text-sm font-semibold text-slate-200">
               Descripción
             </label>
             <textarea
@@ -196,7 +194,7 @@ export default function ProductModal({
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               disabled={isSubmitting}
-              className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className={textareaClass}
             />
           </div>
 
@@ -224,7 +222,7 @@ export default function ProductModal({
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label className="mb-1.5 block text-sm font-semibold text-slate-200">
               Categoría
             </label>
             <select
@@ -232,7 +230,7 @@ export default function ProductModal({
               onChange={(e) => setCategoryId(e.target.value)}
               required
               disabled={isSubmitting || categories.length === 0}
-              className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className={`${adminSelectClass} w-full`}
             >
               <option value="">Seleccionar categoría</option>
               {categories.map((cat) => (
@@ -243,8 +241,8 @@ export default function ProductModal({
             </select>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+          <div className="rounded-xl border border-[var(--border)] bg-surface p-4">
+            <label className="mb-1.5 block text-sm font-semibold text-slate-200">
               Imagen principal (archivo)
             </label>
             <input
@@ -252,7 +250,7 @@ export default function ProductModal({
               accept="image/*"
               onChange={(e) => setImageFile(e.target.files?.[0] || null)}
               disabled={isSubmitting}
-              className="w-full text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-indigo-600"
+              className="w-full text-sm text-slate-400 file:mr-4 file:rounded-lg file:border-0 file:bg-neon-red/15 file:px-4 file:py-2 file:text-sm file:font-medium file:text-neon-red"
             />
             <p className="mt-2 text-xs text-slate-500">
               Opcional. Si falla la subida, se usarán las URLs o imágenes automáticas.
@@ -260,7 +258,7 @@ export default function ProductModal({
           </div>
 
           <div className="space-y-3">
-            <p className="text-sm font-medium text-slate-700">URLs de imágenes (hasta 3)</p>
+            <p className="text-sm font-semibold text-slate-200">URLs de imágenes (hasta 3)</p>
             {imageUrls.map((url, index) => (
               <Input
                 key={index}
@@ -279,7 +277,7 @@ export default function ProductModal({
               {previewImages.map((src, index) => (
                 <div
                   key={`${src}-${index}`}
-                  className="relative aspect-square overflow-hidden rounded-lg bg-slate-100"
+                  className="relative aspect-square overflow-hidden rounded-xl border border-[var(--border)] bg-surface"
                 >
                   <Image
                     src={src}
@@ -294,7 +292,7 @@ export default function ProductModal({
           )}
 
           <div className="flex gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
+            <Button type="button" variant="ghost" onClick={handleClose} disabled={isSubmitting}>
               Cancelar
             </Button>
             <Button type="submit" isLoading={isSubmitting} className="flex-1">
