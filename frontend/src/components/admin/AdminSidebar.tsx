@@ -52,15 +52,6 @@ export default function AdminSidebar() {
           )
         })}
       </nav>
-
-      <div className="absolute bottom-0 w-full border-t border-slate-800 p-4">
-        <Link
-          href="/"
-          className="block rounded-lg px-4 py-2 text-sm text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
-        >
-          ← Volver a la tienda
-        </Link>
-      </div>
     </aside>
   )
 }

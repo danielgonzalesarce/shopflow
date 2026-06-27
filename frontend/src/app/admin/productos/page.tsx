@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Image from 'next/image'
-import { ImageOff, Loader2, Plus } from 'lucide-react'
+import { ImageOff, Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import ProductModal from './ProductModal'
 import Button from '@/components/ui/Button'
@@ -10,15 +10,18 @@ import Card from '@/components/ui/Card'
 import api from '@/lib/axios'
 import { getApiErrorMessage } from '@/lib/errors'
 import { formatPrice } from '@/lib/products'
+import { useAuthStore } from '@/store/auth.store'
 import type { ApiResponse, Category, Product } from '@/types'
 
 export default function AdminProductosPage() {
+  const token = useAuthStore((state) => state.token)
+  const isAuthLoading = useAuthStore((state) => state.isLoading)
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
-  const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const loadProducts = useCallback(async () => {
     setIsLoading(true)
@@ -34,12 +37,14 @@ export default function AdminProductosPage() {
   }, [])
 
   useEffect(() => {
+    if (isAuthLoading || !token) return
+
     loadProducts()
     api
       .get<ApiResponse<Category[]>>('/products/categories')
       .then((res) => setCategories(res.data.data))
       .catch(() => setCategories([]))
-  }, [loadProducts])
+  }, [loadProducts, token, isAuthLoading])
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product)
@@ -51,31 +56,46 @@ export default function AdminProductosPage() {
     setModalOpen(true)
   }
 
-  const handleToggleActive = async (product: Product) => {
-    setTogglingId(product.id)
+  const handleDelete = async (product: Product) => {
+    const confirmed = window.confirm(
+      `¿Eliminar "${product.name}" del catálogo?\n\nEl producto se ocultará de la tienda pero se conservará en pedidos anteriores.`
+    )
+
+    if (!confirmed) return
+
+    setDeletingId(product.id)
 
     try {
-      if (product.is_active) {
-        await api.delete(`/products/${product.id}`)
-        toast.success('Producto desactivado')
-      } else {
-        const formData = new FormData()
-        formData.append('is_active', 'true')
-        await api.put(`/products/${product.id}`, formData, {
-          transformRequest: [
-            (data: FormData, headers: Record<string, string>) => {
-              delete headers['Content-Type']
-              return data
-            }
-          ]
-        })
-        toast.success('Producto activado')
-      }
+      await api.delete(`/products/${product.id}`)
+      toast.success('Producto eliminado del catálogo')
       await loadProducts()
     } catch (error) {
-      toast.error(getApiErrorMessage(error, 'No se pudo cambiar el estado'))
+      toast.error(getApiErrorMessage(error, 'No se pudo eliminar el producto'))
     } finally {
-      setTogglingId(null)
+      setDeletingId(null)
+    }
+  }
+
+  const handleRestore = async (product: Product) => {
+    setDeletingId(product.id)
+
+    try {
+      const formData = new FormData()
+      formData.append('is_active', 'true')
+      await api.put(`/products/${product.id}`, formData, {
+        transformRequest: [
+          (data: FormData, headers: Record<string, string>) => {
+            delete headers['Content-Type']
+            return data
+          }
+        ]
+      })
+      toast.success('Producto restaurado')
+      await loadProducts()
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'No se pudo restaurar el producto'))
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -86,11 +106,17 @@ export default function AdminProductosPage() {
           <h1 className="text-3xl font-bold text-slate-900">Productos</h1>
           <p className="mt-2 text-slate-600">Gestión del catálogo completo</p>
         </div>
-        <Button onClick={handleAdd}>
+        <Button onClick={handleAdd} disabled={categories.length === 0}>
           <Plus className="mr-2 h-4 w-4" />
-          Agregar producto
+          Crear producto
         </Button>
       </div>
+
+      {categories.length === 0 && (
+        <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          No hay categorías disponibles. Ejecuta el schema de la base de datos antes de crear productos.
+        </p>
+      )}
 
       <Card className="mt-8 overflow-hidden" padding="sm">
         {isLoading ? (
@@ -158,23 +184,38 @@ export default function AdminProductosPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleEdit(product)}
                           >
+                            <Pencil className="mr-1.5 h-3.5 w-3.5" />
                             Editar
                           </Button>
-                          <Button
-                            size="sm"
-                            variant={product.is_active ? 'ghost' : 'secondary'}
-                            onClick={() => handleToggleActive(product)}
-                            disabled={togglingId === product.id}
-                            isLoading={togglingId === product.id}
-                          >
-                            {product.is_active ? 'Desactivar' : 'Activar'}
-                          </Button>
+                          {product.is_active ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDelete(product)}
+                              disabled={deletingId === product.id}
+                              isLoading={deletingId === product.id}
+                              className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                            >
+                              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                              Eliminar
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => handleRestore(product)}
+                              disabled={deletingId === product.id}
+                              isLoading={deletingId === product.id}
+                            >
+                              Restaurar
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>

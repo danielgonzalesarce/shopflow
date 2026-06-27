@@ -3,6 +3,20 @@ import { formatPrice } from './utils'
 
 export { formatPrice }
 
+export function getProductImages(
+  product: Pick<Product, 'images' | 'image_url'>
+): string[] {
+  if (product.images?.length) {
+    return product.images.filter(Boolean).slice(0, 3)
+  }
+
+  if (product.image_url) {
+    return [product.image_url]
+  }
+
+  return []
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 export interface ProductsPageData {

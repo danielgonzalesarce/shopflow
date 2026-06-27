@@ -36,7 +36,7 @@ async function register(req, res) {
     if (existingUser) {
       return res.status(409).json({
         error: true,
-        message: 'El correo electrónico ya está registrado'
+        message: 'El correo electrónico ya está registrado. Inicia sesión o usa Google/GitHub.'
       })
     }
 
@@ -90,7 +90,7 @@ async function login(req, res) {
 
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, email, password_hash, full_name, role, created_at')
+      .select('id, email, password_hash, full_name, role, created_at, oauth_provider')
       .eq('email', email.toLowerCase().trim())
       .maybeSingle()
 
@@ -98,6 +98,14 @@ async function login(req, res) {
       return res.status(401).json({
         error: true,
         message: 'Credenciales inválidas'
+      })
+    }
+
+    if (!user.password_hash) {
+      const provider = user.oauth_provider === 'google' ? 'Google' : 'GitHub'
+      return res.status(400).json({
+        error: true,
+        message: `Esta cuenta usa inicio de sesión con ${provider}. Usa ese botón para entrar.`
       })
     }
 

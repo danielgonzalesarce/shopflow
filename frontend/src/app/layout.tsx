@@ -1,14 +1,14 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Plus_Jakarta_Sans } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
 import AuthProvider from '@/components/providers/AuthProvider'
-import Navbar from '@/components/layout/Navbar'
-import Footer from '@/components/layout/Footer'
+import AppShell from '@/components/layout/AppShell'
 import './globals.css'
 
-const inter = Inter({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  variable: '--font-inter'
+  variable: '--font-jakarta',
+  display: 'swap'
 })
 
 export const metadata: Metadata = {
@@ -41,26 +41,26 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" className={`${inter.variable} h-full`}>
-      <body className="flex min-h-full flex-col bg-slate-50 font-sans text-slate-900 antialiased">
+    <html lang="es" className={`${jakarta.variable} h-full scroll-smooth`}>
+      <body className="flex min-h-full flex-col bg-[var(--background)] font-sans text-[var(--foreground)] antialiased">
         <AuthProvider>
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <AppShell>{children}</AppShell>
           <Toaster
             position="top-right"
             toastOptions={{
-              duration: 3000,
+              duration: 3500,
               style: {
-                background: '#ffffff',
-                color: '#0f172a',
-                border: '1px solid #e2e8f0',
-                borderRadius: '0.75rem',
-                boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)'
+                background: '#16162a',
+                color: '#f1f5f9',
+                border: '1px solid #2a2a3d',
+                borderRadius: '0.875rem',
+                boxShadow: '0 10px 40px -10px rgb(0 0 0 / 0.5)',
+                fontSize: '0.875rem',
+                fontWeight: 500
               },
               success: {
                 iconTheme: {
-                  primary: '#6366f1',
+                  primary: '#e53935',
                   secondary: '#ffffff'
                 }
               }

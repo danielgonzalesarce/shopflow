@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Filter, Search, SlidersHorizontal } from 'lucide-react'
 import api from '@/lib/axios'
 import { filterProductsByPrice } from '@/lib/products'
 import ProductGrid from '@/components/product/ProductGrid'
@@ -33,7 +33,9 @@ export default function ProductosCatalog() {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [totalPages, setTotalPages] = useState(0)
+  const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   const updateParams = useCallback(
     (updates: Record<string, string | null>) => {
@@ -104,9 +106,11 @@ export default function ProductosCatalog() {
 
         setProducts(filtered)
         setTotalPages(data.data.totalPages)
+        setTotal(data.data.total)
       } catch {
         setProducts([])
         setTotalPages(0)
+        setTotal(0)
       } finally {
         setIsLoading(false)
       }
@@ -122,125 +126,169 @@ export default function ProductosCatalog() {
     })
   }
 
+  const activeCategoryName = categories.find((c) => c.slug === category)?.name
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Catálogo de productos</h1>
-        <p className="mt-2 text-slate-600">
-          Explora nuestra selección y encuentra lo que necesitas
-        </p>
+    <div className="min-h-screen bg-[var(--background)]">
+      <div className="border-b border-[var(--border)] bg-surface">
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+          <span className="text-sm font-semibold uppercase tracking-wider text-neon-red">
+            Catálogo
+          </span>
+          <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+            {activeCategoryName ? activeCategoryName : 'Todos los productos'}
+          </h1>
+          <p className="mt-2 text-slate-400">
+            {total > 0
+              ? `${total} productos disponibles`
+              : 'Explora nuestra selección y encuentra lo que necesitas'}
+          </p>
+
+          <div className="relative mt-8">
+            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              placeholder="Buscar por nombre o descripción..."
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              className="w-full rounded-2xl border border-[var(--border)] bg-surface-elevated py-4 pl-12 pr-4 text-white shadow-sm transition-all placeholder:text-slate-500 focus:border-neon-red focus:bg-surface focus:outline-none focus:ring-4 focus:ring-neon-red/15"
+              aria-label="Buscar productos"
+            />
+          </div>
+        </div>
       </div>
 
-      <div className="relative mb-8">
-        <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-        <input
-          type="search"
-          placeholder="Buscar productos..."
-          value={searchInput}
-          onChange={(event) => setSearchInput(event.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-12 pr-4 text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-          aria-label="Buscar productos"
-        />
-      </div>
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <button
+          onClick={() => setFiltersOpen((prev) => !prev)}
+          className="mb-6 inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-surface-elevated px-4 py-2.5 text-sm font-semibold text-slate-300 shadow-sm lg:hidden"
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+          Filtros
+        </button>
 
-      <div className="flex flex-col gap-8 lg:flex-row">
-        <aside className="w-full shrink-0 lg:w-64">
-          <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900">Filtros</h2>
-
-            <div className="mt-6">
-              <h3 className="text-sm font-medium text-slate-700">Categorías</h3>
-              <div className="mt-3 space-y-2">
-                {categories.map((item) => (
-                  <label
-                    key={item.id}
-                    className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-slate-50"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={category === item.slug}
-                      onChange={() => toggleCategory(item.slug)}
-                      className="h-4 w-4 rounded border-slate-300 text-indigo-500 focus:ring-indigo-500"
-                    />
-                    <span className="text-sm text-slate-700">{item.name}</span>
-                  </label>
-                ))}
+        <div className="flex flex-col gap-8 lg:flex-row">
+          <aside
+            className={`w-full shrink-0 lg:block lg:w-72 ${filtersOpen ? 'block' : 'hidden'}`}
+          >
+            <div className="sticky top-24 rounded-2xl border border-[var(--border)] bg-surface-elevated p-6 shadow-sm">
+              <div className="flex items-center gap-2">
+                <Filter className="h-5 w-5 text-neon-red" />
+                <h2 className="text-lg font-bold text-white">Filtros</h2>
               </div>
-            </div>
 
-            <div className="mt-6">
-              <h3 className="text-sm font-medium text-slate-700">Precio (S/.)</h3>
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <Input
-                  label="Mínimo"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={minPrice}
-                  onChange={(event) =>
-                    updateParams({ minPrice: event.target.value || null, page: '1' })
-                  }
-                />
-                <Input
-                  label="Máximo"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="999.99"
-                  value={maxPrice}
-                  onChange={(event) =>
-                    updateParams({ maxPrice: event.target.value || null, page: '1' })
-                  }
-                />
+              <div className="mt-6">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Categorías
+                </h3>
+                <div className="mt-3 flex flex-wrap gap-2 lg:flex-col lg:gap-1">
+                  {categories.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => toggleCategory(item.slug)}
+                      className={`rounded-xl px-3 py-2 text-left text-sm font-medium transition-all ${
+                        category === item.slug
+                          ? 'bg-neon-red text-white shadow-md shadow-neon-red/30'
+                          : 'bg-white/5 text-slate-300 hover:bg-neon-red/10 hover:text-neon-red'
+                      }`}
+                    >
+                      {item.name}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {(category || minPrice || maxPrice || search) && (
-              <button
-                onClick={() => router.push(pathname)}
-                className="mt-6 w-full text-sm font-medium text-indigo-500 transition-colors hover:text-indigo-600"
-              >
-                Limpiar filtros
-              </button>
+              <div className="mt-8">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Precio (S/.)
+                </h3>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <Input
+                    label="Mínimo"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={minPrice}
+                    onChange={(event) =>
+                      updateParams({ minPrice: event.target.value || null, page: '1' })
+                    }
+                  />
+                  <Input
+                    label="Máximo"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="999.99"
+                    value={maxPrice}
+                    onChange={(event) =>
+                      updateParams({ maxPrice: event.target.value || null, page: '1' })
+                    }
+                  />
+                </div>
+              </div>
+
+              {(category || minPrice || maxPrice || search) && (
+                <button
+                  onClick={() => router.push(pathname)}
+                  className="mt-6 w-full rounded-xl bg-white/5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:bg-white/10"
+                >
+                  Limpiar filtros
+                </button>
+              )}
+            </div>
+          </aside>
+
+          <div className="flex-1">
+            {isLoading ? (
+              <ProductGridSkeleton count={6} />
+            ) : products.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-surface py-20 text-center">
+                <Search className="h-12 w-12 text-slate-600" />
+                <h3 className="mt-4 text-lg font-bold text-white">Sin resultados</h3>
+                <p className="mt-2 text-sm text-slate-400">
+                  Prueba con otros filtros o términos de búsqueda
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-6"
+                  onClick={() => router.push(pathname)}
+                >
+                  Ver todos los productos
+                </Button>
+              </div>
+            ) : (
+              <>
+                <ProductGrid products={products} />
+
+                {totalPages > 1 && (
+                  <div className="mt-12 flex items-center justify-center gap-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page <= 1}
+                      onClick={() => updateParams({ page: String(page - 1) })}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Anterior
+                    </Button>
+                    <span className="rounded-xl bg-white/5 px-4 py-2 text-sm font-semibold text-slate-300">
+                      {page} / {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page >= totalPages}
+                      onClick={() => updateParams({ page: String(page + 1) })}
+                    >
+                      Siguiente
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
-        </aside>
-
-        <div className="flex-1">
-          {isLoading ? (
-            <ProductGridSkeleton count={6} />
-          ) : (
-            <>
-              <ProductGrid products={products} />
-
-              {totalPages > 1 && (
-                <div className="mt-10 flex items-center justify-center gap-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page <= 1}
-                    onClick={() => updateParams({ page: String(page - 1) })}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Anterior
-                  </Button>
-                  <span className="text-sm text-slate-600">
-                    Página {page} de {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page >= totalPages}
-                    onClick={() => updateParams({ page: String(page + 1) })}
-                  >
-                    Siguiente
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
         </div>
       </div>
     </div>

@@ -5,19 +5,17 @@ import { FormEvent, useEffect, useState } from 'react'
 import { Loader2, ShoppingCart } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import AuthGuard from '@/components/auth/AuthGuard'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 import Input from '@/components/ui/Input'
+import { useRequireAuthForCheckout } from '@/hooks/useRequireAuthForCheckout'
 import api from '@/lib/axios'
 import { getApiErrorMessage } from '@/lib/errors'
 import { formatPrice } from '@/lib/products'
+import { calcOrderTotal, calcShipping, FREE_SHIPPING_THRESHOLD, SHIPPING_COST } from '@/lib/shipping'
 import { useAuthStore } from '@/store/auth.store'
 import { useCartStore } from '@/store/cart.store'
 import type { ApiResponse, Order } from '@/types'
-
-const FREE_SHIPPING_THRESHOLD = 50
-const SHIPPING_COST = 10
 
 type PaymentMethod = 'card' | 'cash' | 'transfer'
 
@@ -27,9 +25,11 @@ const paymentOptions: { value: PaymentMethod; label: string }[] = [
   { value: 'transfer', label: 'Transferencia Bancaria' }
 ]
 
-function CheckoutPageContent() {
+export default function CheckoutPage() {
   const router = useRouter()
+  const token = useAuthStore((state) => state.token)
   const user = useAuthStore((state) => state.user)
+  const requireAuthForCheckout = useRequireAuthForCheckout()
   const { items, total, fetchCart, reset, isLoading } = useCartStore()
 
   const [recipientName, setRecipientName] = useState('')
@@ -39,10 +39,18 @@ function CheckoutPageContent() {
   const [cardExpiry, setCardExpiry] = useState('')
   const [cardCvv, setCardCvv] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
     fetchCart()
   }, [fetchCart])
+
+  useEffect(() => {
+    if (!token && !authChecked) {
+      setAuthChecked(true)
+      requireAuthForCheckout('/checkout')
+    }
+  }, [token, authChecked, requireAuthForCheckout])
 
   useEffect(() => {
     if (user?.full_name) {
@@ -50,11 +58,16 @@ function CheckoutPageContent() {
     }
   }, [user?.full_name])
 
-  const shippingCost = total > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST
-  const finalTotal = total + shippingCost
+  const shippingCost = calcShipping(total)
+  const finalTotal = calcOrderTotal(total)
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+
+    if (!token) {
+      requireAuthForCheckout('/checkout')
+      return
+    }
 
     if (items.length === 0) {
       toast.error('Tu carrito está vacío')
@@ -82,6 +95,14 @@ function CheckoutPageContent() {
       toast.error(getApiErrorMessage(error, 'No se pudo confirmar el pedido'))
       setIsSubmitting(false)
     }
+  }
+
+  if (!token) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center px-4 text-center">
+        <p className="text-slate-600">Redirigiendo para iniciar sesión...</p>
+      </div>
+    )
   }
 
   if (isLoading && items.length === 0) {
@@ -156,7 +177,7 @@ function CheckoutPageContent() {
               <div className="w-full">
                 <label
                   htmlFor="address"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
+                  className="mb-1.5 block text-sm font-semibold text-slate-800"
                 >
                   Dirección de entrega completa
                 </label>
@@ -169,7 +190,7 @@ function CheckoutPageContent() {
                   placeholder="Calle, número, distrito, ciudad, referencia..."
                   required
                   disabled={isSubmitting}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:bg-slate-50"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm transition-all placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:bg-slate-50"
                 />
               </div>
             </div>
@@ -203,9 +224,7 @@ function CheckoutPageContent() {
 
             <div
               className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                paymentMethod === 'card'
-                  ? 'mt-4 max-h-80 opacity-100'
-                  : 'max-h-0 opacity-0'
+                paymentMethod === 'card' ? 'mt-4 max-h-80 opacity-100' : 'max-h-0 opacity-0'
               }`}
             >
               <div className="space-y-4 rounded-lg border border-slate-100 bg-slate-50 p-4">
@@ -215,7 +234,6 @@ function CheckoutPageContent() {
                   value={cardNumber}
                   onChange={(event) => setCardNumber(event.target.value)}
                   placeholder="4242 4242 4242 4242"
-                  pattern="[\d\s]{16,19}"
                   inputMode="numeric"
                   maxLength={19}
                   required={paymentMethod === 'card'}
@@ -228,7 +246,6 @@ function CheckoutPageContent() {
                     value={cardExpiry}
                     onChange={(event) => setCardExpiry(event.target.value)}
                     placeholder="MM/AA"
-                    pattern="(0[1-9]|1[0-2])\/[0-9]{2}"
                     maxLength={5}
                     required={paymentMethod === 'card'}
                     disabled={isSubmitting}
@@ -239,7 +256,6 @@ function CheckoutPageContent() {
                     value={cardCvv}
                     onChange={(event) => setCardCvv(event.target.value)}
                     placeholder="123"
-                    pattern="[0-9]{3,4}"
                     inputMode="numeric"
                     maxLength={4}
                     required={paymentMethod === 'card'}
@@ -265,10 +281,15 @@ function CheckoutPageContent() {
                   {shippingCost === 0 ? (
                     <span className="text-green-600">Gratis</span>
                   ) : (
-                    formatPrice(shippingCost)
+                    formatPrice(SHIPPING_COST)
                   )}
                 </dd>
               </div>
+              {total <= FREE_SHIPPING_THRESHOLD && total > 0 && (
+                <p className="text-xs text-slate-500">
+                  Envío gratis en compras mayores a {formatPrice(FREE_SHIPPING_THRESHOLD)}
+                </p>
+              )}
               <div className="border-t border-slate-100 pt-3">
                 <div className="flex justify-between">
                   <dt className="font-semibold text-slate-900">Total</dt>
@@ -299,13 +320,5 @@ function CheckoutPageContent() {
         </div>
       </form>
     </div>
-  )
-}
-
-export default function CheckoutPage() {
-  return (
-    <AuthGuard>
-      <CheckoutPageContent />
-    </AuthGuard>
   )
 }

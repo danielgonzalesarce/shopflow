@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { Loader2, Package, ShoppingCart, Clock, DollarSign } from 'lucide-react'
+import toast from 'react-hot-toast'
 import Card from '@/components/ui/Card'
 import api from '@/lib/axios'
+import { getApiErrorMessage } from '@/lib/errors'
 import { formatOrderDate, statusStyles, type OrderStatus } from '@/lib/orders'
 import { formatPrice } from '@/lib/products'
+import { useAuthStore } from '@/store/auth.store'
 import type { ApiResponse, Order, Product } from '@/types'
 
 interface DashboardStats {
@@ -17,10 +20,14 @@ interface DashboardStats {
 }
 
 export default function AdminDashboardPage() {
+  const token = useAuthStore((state) => state.token)
+  const isAuthLoading = useAuthStore((state) => state.isLoading)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    if (isAuthLoading || !token) return
+
     async function loadDashboard() {
       setIsLoading(true)
 
@@ -46,7 +53,8 @@ export default function AdminDashboardPage() {
           totalRevenue,
           recentOrders: orders.slice(0, 5)
         })
-      } catch {
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, 'Error al cargar el dashboard'))
         setStats({
           activeProducts: 0,
           totalOrders: 0,
@@ -60,7 +68,7 @@ export default function AdminDashboardPage() {
     }
 
     loadDashboard()
-  }, [])
+  }, [token, isAuthLoading])
 
   if (isLoading) {
     return (

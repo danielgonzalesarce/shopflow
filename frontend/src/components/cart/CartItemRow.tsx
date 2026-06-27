@@ -76,10 +76,10 @@ export default function CartItemRow({ item }: CartItemRowProps) {
   const hasImage = item.product.image_url && !imageError
 
   return (
-    <div className="flex gap-4 rounded-xl border border-slate-100 bg-white p-4 shadow-sm sm:items-center">
+    <div className="flex gap-4 rounded-2xl border border-[var(--border)] bg-surface-elevated p-5 transition-all hover:border-neon-red/30 sm:items-center">
       <Link
         href={`/productos/${item.product_id}`}
-        className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-slate-100 sm:h-24 sm:w-24"
+        className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-surface sm:h-24 sm:w-24"
       >
         {hasImage ? (
           <Image
@@ -91,7 +91,7 @@ export default function CartItemRow({ item }: CartItemRowProps) {
             onError={() => setImageError(true)}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-slate-400">
+          <div className="flex h-full w-full items-center justify-center text-slate-600">
             <ImageOff className="h-6 w-6" />
           </div>
         )}
@@ -101,13 +101,18 @@ export default function CartItemRow({ item }: CartItemRowProps) {
         <div className="min-w-0 flex-1">
           <Link
             href={`/productos/${item.product_id}`}
-            className="line-clamp-2 font-semibold text-slate-900 transition-colors hover:text-indigo-500"
+            className="line-clamp-2 font-semibold text-white transition-colors hover:text-neon-cyan"
           >
             {item.product.name}
           </Link>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-400">
             {formatPrice(item.product.price)} c/u
           </p>
+          {item.product.category && (
+            <span className="mt-2 inline-flex rounded-full border border-neon-cyan/20 bg-neon-cyan/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-neon-cyan">
+              {item.product.category.name}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-4 sm:justify-end">
@@ -116,12 +121,12 @@ export default function CartItemRow({ item }: CartItemRowProps) {
               type="button"
               onClick={() => handleQuantityChange(quantity - 1)}
               disabled={quantity <= 1 || isUpdating || isRemoving}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] text-white transition-colors hover:border-neon-red/50 hover:bg-neon-red/10 disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Disminuir cantidad"
             >
               <Minus className="h-4 w-4" />
             </button>
-            <span className="w-8 text-center text-sm font-medium text-slate-900">
+            <span className="w-8 text-center text-sm font-semibold text-white">
               {quantity}
             </span>
             <button
@@ -130,14 +135,14 @@ export default function CartItemRow({ item }: CartItemRowProps) {
               disabled={
                 quantity >= item.product.stock || isUpdating || isRemoving
               }
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] text-white transition-colors hover:border-neon-red/50 hover:bg-neon-red/10 disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Aumentar cantidad"
             >
               <Plus className="h-4 w-4" />
             </button>
           </div>
 
-          <p className="min-w-[80px] text-right text-sm font-semibold text-slate-900 sm:text-base">
+          <p className="min-w-[90px] text-right text-sm font-bold text-neon-cyan sm:text-base">
             {formatPrice(subtotal)}
           </p>
 
@@ -145,7 +150,7 @@ export default function CartItemRow({ item }: CartItemRowProps) {
             type="button"
             onClick={handleRemove}
             disabled={isRemoving || isUpdating}
-            className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Eliminar producto"
           >
             <Trash2 className="h-5 w-5" />

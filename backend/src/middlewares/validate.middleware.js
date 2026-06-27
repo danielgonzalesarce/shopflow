@@ -48,6 +48,9 @@ const productValidator = [
     .trim()
     .notEmpty()
     .withMessage('El nombre del producto es obligatorio'),
+  body('category_id')
+    .notEmpty()
+    .withMessage('La categoría es obligatoria'),
   body('price')
     .isFloat({ min: 0 })
     .withMessage('El precio debe ser un número positivo'),

@@ -8,13 +8,19 @@
 -- -----------------------------------------------------------------------------
 
 CREATE TABLE users (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email         TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  full_name     TEXT NOT NULL,
-  role          TEXT NOT NULL DEFAULT 'cliente' CHECK (role IN ('cliente', 'admin')),
-  created_at    TIMESTAMPTZ DEFAULT NOW()
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email           TEXT UNIQUE NOT NULL,
+  password_hash   TEXT,
+  full_name       TEXT NOT NULL,
+  role            TEXT NOT NULL DEFAULT 'cliente' CHECK (role IN ('cliente', 'admin')),
+  oauth_provider  TEXT,
+  oauth_id        TEXT,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE UNIQUE INDEX users_oauth_provider_id_idx
+  ON users (oauth_provider, oauth_id)
+  WHERE oauth_provider IS NOT NULL AND oauth_id IS NOT NULL;
 
 CREATE TABLE categories (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -30,6 +36,7 @@ CREATE TABLE products (
   price       NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
   stock       INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
   image_url   TEXT,
+  images      TEXT[] DEFAULT '{}',
   category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
   is_active   BOOLEAN DEFAULT TRUE,
   created_at  TIMESTAMPTZ DEFAULT NOW(),
@@ -41,6 +48,14 @@ CREATE TABLE cart_items (
   user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   quantity   INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (user_id, product_id)
+);
+
+CREATE TABLE wishlist_items (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (user_id, product_id)
 );

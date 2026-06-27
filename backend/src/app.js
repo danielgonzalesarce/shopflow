@@ -8,6 +8,7 @@ const errorHandler = require('./middlewares/errorHandler')
 const authRoutes = require('./routes/auth.routes')
 const productRoutes = require('./routes/product.routes')
 const cartRoutes = require('./routes/cart.routes')
+const wishlistRoutes = require('./routes/wishlist.routes')
 const orderRoutes = require('./routes/order.routes')
 
 const app = express()
@@ -38,6 +39,7 @@ const authLimiter = rateLimit({
 app.use('/api/auth', authLimiter, authRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/cart', cartRoutes)
+app.use('/api/favorites', wishlistRoutes)
 app.use('/api/orders', orderRoutes)
 
 // Health check

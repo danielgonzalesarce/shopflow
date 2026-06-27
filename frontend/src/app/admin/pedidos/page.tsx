@@ -13,9 +13,12 @@ import {
   type OrderStatus
 } from '@/lib/orders'
 import { formatPrice } from '@/lib/products'
+import { useAuthStore } from '@/store/auth.store'
 import type { ApiResponse, Order } from '@/types'
 
 export default function AdminPedidosPage() {
+  const token = useAuthStore((state) => state.token)
+  const isAuthLoading = useAuthStore((state) => state.isLoading)
   const [orders, setOrders] = useState<Order[]>([])
   const [filterStatus, setFilterStatus] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -40,8 +43,9 @@ export default function AdminPedidosPage() {
   }, [filterStatus])
 
   useEffect(() => {
+    if (isAuthLoading || !token) return
     loadOrders()
-  }, [loadOrders])
+  }, [loadOrders, token, isAuthLoading])
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     setUpdatingId(orderId)

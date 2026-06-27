@@ -2,6 +2,7 @@ import { HTMLAttributes } from 'react'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   padding?: 'sm' | 'md' | 'lg'
+  hover?: boolean
 }
 
 const paddingClasses = {
@@ -12,13 +13,14 @@ const paddingClasses = {
 
 export default function Card({
   padding = 'md',
+  hover = false,
   className = '',
   children,
   ...props
 }: CardProps) {
   return (
     <div
-      className={`rounded-xl border border-slate-100 bg-white shadow-sm ${paddingClasses[padding]} ${className}`}
+      className={`rounded-2xl border border-[var(--border)] bg-surface-elevated shadow-sm ${hover ? 'card-hover' : ''} ${paddingClasses[padding]} ${className}`}
       {...props}
     >
       {children}

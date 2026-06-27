@@ -44,11 +44,12 @@ async function fetchCartData(userId) {
   })
 
   const total = items.reduce((sum, item) => sum + item.subtotal, 0)
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
 
   return {
     items,
     total,
-    itemCount: items.length
+    itemCount
   }
 }
 

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import api from '@/lib/axios'
 import type { ApiResponse, User } from '@/types'
 import { useCartStore } from '@/store/cart.store'
+import { useFavoritesStore } from '@/store/favorites.store'
 
 interface AuthState {
   user: User | null
@@ -9,6 +10,7 @@ interface AuthState {
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string, full_name: string) => Promise<void>
+  completeOAuthLogin: (token: string) => Promise<User>
   logout: () => void
   loadFromStorage: () => Promise<void>
 }
@@ -41,7 +43,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         isLoading: false
       })
 
-      await useCartStore.getState().fetchCart()
+      await useCartStore.getState().mergeGuestCartOnLogin()
+      await useFavoritesStore.getState().mergeGuestFavoritesOnLogin()
     } catch (error) {
       set({ isLoading: false })
       throw error
@@ -67,9 +70,37 @@ export const useAuthStore = create<AuthState>((set) => ({
         isLoading: false
       })
 
-      await useCartStore.getState().fetchCart()
+      await useCartStore.getState().mergeGuestCartOnLogin()
+      await useFavoritesStore.getState().mergeGuestFavoritesOnLogin()
     } catch (error) {
       set({ isLoading: false })
+      throw error
+    }
+  },
+
+  completeOAuthLogin: async (token) => {
+    set({ isLoading: true })
+
+    try {
+      localStorage.setItem('token', token)
+
+      const { data } = await api.get<ApiResponse<User>>('/auth/me')
+      localStorage.setItem('user', JSON.stringify(data.data))
+
+      set({
+        user: data.data,
+        token,
+        isLoading: false
+      })
+
+      await useCartStore.getState().mergeGuestCartOnLogin()
+      await useFavoritesStore.getState().mergeGuestFavoritesOnLogin()
+
+      return data.data
+    } catch (error) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      set({ user: null, token: null, isLoading: false })
       throw error
     }
   },
@@ -80,6 +111,9 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     set({ user: null, token: null })
     useCartStore.getState().reset()
+    useFavoritesStore.getState().reset()
+    useCartStore.getState().hydrateGuestCart()
+    useFavoritesStore.getState().hydrateGuestFavorites()
   },
 
   loadFromStorage: async () => {
@@ -105,11 +139,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ user: data.data, token, isLoading: false })
 
       await useCartStore.getState().fetchCart()
+      await useFavoritesStore.getState().fetchFavorites()
     } catch {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       set({ user: null, token: null, isLoading: false })
       useCartStore.getState().reset()
+      useFavoritesStore.getState().reset()
     }
   }
 }))

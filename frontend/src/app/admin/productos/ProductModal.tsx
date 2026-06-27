@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import api from '@/lib/axios'
 import { getApiErrorMessage } from '@/lib/errors'
+import { getProductImages } from '@/lib/products'
 import type { ApiResponse, Category, Product } from '@/types'
 
 interface ProductModalProps {
@@ -17,6 +18,8 @@ interface ProductModalProps {
   onClose: () => void
   onSuccess: () => void
 }
+
+const emptyImageUrls = () => ['', '', '']
 
 export default function ProductModal({
   open,
@@ -32,35 +35,47 @@ export default function ProductModal({
   const [price, setPrice] = useState('')
   const [stock, setStock] = useState('')
   const [categoryId, setCategoryId] = useState('')
+  const [imageUrls, setImageUrls] = useState(emptyImageUrls)
   const [imageFile, setImageFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    if (open && product) {
+    if (!open) return
+
+    if (product) {
+      const images = getProductImages(product)
       setName(product.name)
       setDescription(product.description || '')
       setPrice(String(product.price))
       setStock(String(product.stock))
       setCategoryId(product.category_id || '')
-      setPreviewUrl(product.image_url || null)
-      setImageFile(null)
-    } else if (open) {
+      setImageUrls([
+        images[0] || '',
+        images[1] || '',
+        images[2] || ''
+      ])
+    } else {
       setName('')
       setDescription('')
       setPrice('')
       setStock('')
       setCategoryId(categories[0]?.id || '')
-      setPreviewUrl(null)
-      setImageFile(null)
+      setImageUrls(emptyImageUrls())
     }
+
+    setImageFile(null)
+    setFilePreviewUrl(null)
   }, [open, product, categories])
 
   useEffect(() => {
-    if (!imageFile) return
+    if (!imageFile) {
+      setFilePreviewUrl(null)
+      return
+    }
 
     const url = URL.createObjectURL(imageFile)
-    setPreviewUrl(url)
+    setFilePreviewUrl(url)
 
     return () => URL.revokeObjectURL(url)
   }, [imageFile])
@@ -70,8 +85,22 @@ export default function ProductModal({
     onClose()
   }
 
+  const updateImageUrl = (index: number, value: string) => {
+    setImageUrls((prev) => {
+      const next = [...prev]
+      next[index] = value
+      return next
+    })
+  }
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
+
+    if (!categoryId) {
+      toast.error('Selecciona una categoría')
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -81,6 +110,9 @@ export default function ProductModal({
       formData.append('price', price)
       formData.append('stock', stock)
       formData.append('category_id', categoryId)
+
+      const normalizedImages = imageUrls.map((url) => url.trim()).filter(Boolean)
+      formData.append('images', JSON.stringify(normalizedImages))
 
       if (imageFile) {
         formData.append('image', imageFile)
@@ -97,10 +129,10 @@ export default function ProductModal({
 
       if (isEditing && product) {
         await api.put(`/products/${product.id}`, formData, config)
-        toast.success('Producto actualizado')
+        toast.success('Producto actualizado correctamente')
       } else {
         await api.post('/products', formData, config)
-        toast.success('Producto creado')
+        toast.success('Producto creado correctamente')
       }
 
       onSuccess()
@@ -114,17 +146,28 @@ export default function ProductModal({
 
   if (!open) return null
 
+  const previewImages = [
+    filePreviewUrl || imageUrls[0],
+    imageUrls[1],
+    imageUrls[2]
+  ].filter(Boolean)
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
         onClick={handleClose}
       />
-      <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white shadow-xl">
+      <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <h2 className="text-lg font-semibold text-slate-900">
-            {isEditing ? 'Editar producto' : 'Agregar producto'}
-          </h2>
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">
+              {isEditing ? 'Editar producto' : 'Crear producto'}
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Completa los datos. Si no subes imágenes, se generarán automáticamente.
+            </p>
+          </div>
           <button
             type="button"
             onClick={handleClose}
@@ -188,7 +231,7 @@ export default function ProductModal({
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
               required
-              disabled={isSubmitting}
+              disabled={isSubmitting || categories.length === 0}
               className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             >
               <option value="">Seleccionar categoría</option>
@@ -200,9 +243,9 @@ export default function ProductModal({
             </select>
           </div>
 
-          <div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <label className="mb-1.5 block text-sm font-medium text-slate-700">
-              Imagen del producto
+              Imagen principal (archivo)
             </label>
             <input
               type="file"
@@ -211,18 +254,44 @@ export default function ProductModal({
               disabled={isSubmitting}
               className="w-full text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-indigo-600"
             />
-            {previewUrl && (
-              <div className="relative mt-3 h-40 w-full overflow-hidden rounded-lg bg-slate-100">
-                <Image
-                  src={previewUrl}
-                  alt="Vista previa"
-                  fill
-                  className="object-cover"
-                  unoptimized={previewUrl.startsWith('blob:')}
-                />
-              </div>
-            )}
+            <p className="mt-2 text-xs text-slate-500">
+              Opcional. Si falla la subida, se usarán las URLs o imágenes automáticas.
+            </p>
           </div>
+
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-slate-700">URLs de imágenes (hasta 3)</p>
+            {imageUrls.map((url, index) => (
+              <Input
+                key={index}
+                label={`Imagen ${index + 1}`}
+                type="url"
+                placeholder="https://..."
+                value={url}
+                onChange={(e) => updateImageUrl(index, e.target.value)}
+                disabled={isSubmitting}
+              />
+            ))}
+          </div>
+
+          {previewImages.length > 0 && (
+            <div className="grid grid-cols-3 gap-3">
+              {previewImages.map((src, index) => (
+                <div
+                  key={`${src}-${index}`}
+                  className="relative aspect-square overflow-hidden rounded-lg bg-slate-100"
+                >
+                  <Image
+                    src={src}
+                    alt={`Vista previa ${index + 1}`}
+                    fill
+                    className="object-cover"
+                    unoptimized={src.startsWith('blob:')}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>

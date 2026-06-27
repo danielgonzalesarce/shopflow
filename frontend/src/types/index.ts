@@ -12,6 +12,7 @@ export interface Product {
   price: number
   stock: number
   image_url: string
+  images?: string[]
   category_id?: string
   category?: {
     name: string
@@ -37,6 +38,19 @@ export interface Cart {
   items: CartItem[]
   total: number
   itemCount: number
+}
+
+export interface WishlistItem {
+  id: string
+  product_id: string
+  created_at: string
+  product: Product
+}
+
+export interface Wishlist {
+  items: WishlistItem[]
+  itemCount: number
+  productIds: string[]
 }
 
 export interface OrderItem {

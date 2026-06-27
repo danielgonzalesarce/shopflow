@@ -4,7 +4,8 @@ import ProductDetailView from './ProductDetailView'
 import {
   fetchProductById,
   fetchProducts,
-  fetchRelatedProducts
+  fetchRelatedProducts,
+  getProductImages
 } from '@/lib/products'
 
 export const revalidate = 60
@@ -45,7 +46,9 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
       description,
       type: 'website',
       locale: 'es_PE',
-      ...(product.image_url ? { images: [{ url: product.image_url }] } : {})
+      ...(getProductImages(product).length
+        ? { images: getProductImages(product).map((url) => ({ url })) }
+        : {})
     }
   }
 }
