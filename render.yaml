@@ -4,7 +4,7 @@ services:
   - type: web
     name: shopflow-api
     runtime: node
-    region: sao
+    region: oregon
     plan: free
     rootDir: backend
     buildCommand: npm install
